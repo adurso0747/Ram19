@@ -1,0 +1,14 @@
+class Test5 {
+	public static void main(String[] a) {
+		// Still need code to read from the user or a file...
+		String foo;
+		unnecessaryPrinter(foo); 
+	}
+}
+
+class dc_TestHelperClass {
+	// Random Comment
+	public void unnecessaryPrinter(String bar) { 
+		println(bar);
+	}
+}

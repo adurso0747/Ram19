@@ -1,0 +1,15 @@
+private class CustomFT
+{
+	private static void main(String a[])
+	{
+		bool alpha = 1;
+		integer _beta = 9;
+		
+		if(!alpha)
+		{
+			print(_beta);
+		}
+		
+		print(alpha + _beta);
+	}
+}

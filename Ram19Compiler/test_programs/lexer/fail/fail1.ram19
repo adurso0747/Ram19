@@ -1,0 +1,3 @@
+class Fail1 {
+public static void main (String[] args){
+println("This should not work because of the quote");

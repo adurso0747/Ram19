@@ -1,0 +1,7 @@
+class InvalidVarDeclInMain {
+    integer a;
+
+    public static void main(String[] a) {
+        { }
+    }
+}

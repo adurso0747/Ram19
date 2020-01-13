@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="Ram19Compiler" default="build" basedir=".">
+    <description>Builds, tests, and runs the Ram19Compiler project.</description>
+
+    <!-- set global properties for use in this ant script -->
+    <property name="SRC_DIR" location="src/main/java"/>
+    <property name="BUILD_DIR" location="build/classes"/>
+    <property name="TEST_DIR" location="src/test/java"/>
+    <property name="TEST_PROGRAMS_DIR" location="test_programs"/>
+    <property name="LIB_BUILD_DIR" location="src/main/resources" />
+    <property name="LIB_RUN_DIR" location="src/test/resources" />
+
+    <!-- libraries to be included on class path for compiler -->
+    <path id="build.path">
+        <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar"/>
+    </path>
+    
+    <!-- libraries to be included on class path at runtime -->
+    <path id="runtime.path">
+        <pathelement location="${BUILD_DIR}" />
+        <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar" />
+        <pathelement location="${LIB_RUN_DIR}/hamcrest-all-1.3.jar" />
+    </path>  
+                   
+    <!-- and now, the Ant targets... -->
+    
+    <!-- help: Lists main targets -->
+    <target name="help">
+        <echo message="Try everything in this order:"/>
+        <echo message="-----------------------------------------"/>
+        <echo message="[SCANNER MODULE]"/>
+        <echo message="generateScanner: Generates .java Scanner using JavaCC, based on supplied grammar"/>
+        <echo message="build: "/>
+        <echo message="runScanner: Runs Parser on supplied input file"/>        
+        <echo message="testScanner: Runs Parser against all pass/fail tests"/>
+        <echo message="-----------------------------------------"/>        
+        <echo message="[PARSER MODULE]"/>
+        <echo message="generate: Generates .java Parser using JavaCC, based on supplied grammar"/>
+        <echo message="build: "/>
+        <echo message="runParser: Runs Parser on supplied input file"/>        
+        <echo message="testParser: Runs Parser against all pass/fail tests"/>        
+        <echo message="-----------------------------------------"/>
+        <echo message="[PARSER MODULE w/ SEMANTIC ACTIONS]"/>
+        <echo message="generateSemantic: Generates .java Parser using JavaCC, based on supplied grammar that includes semantic actions"/>
+        <echo message="build: "/>
+        <echo message="runVisitors: Runs each of the visitors that are specified at the top of the .jj grammar file"/>
+        <echo message="-----------------------------------------"/>  
+        <echo message="[SEMANTIC ANALYZER MODULE]"/>
+        <echo message="runSA: Runs the semantic analyzer."/>
+        <echo message="debugSA: Runs the semantic analyzer with NetBeans debugging enabled."/>
+        <echo message="testSA: Tests the entire semantic analyzer."/>
+        <echo message="-----------------------------------------"/>  
+        <echo message="[CODE GENERATION MODULE]"/>
+        <echo message="runCodeGen: Runs the code generator on a single input file."/>
+        <echo message="testCodeGen: Tests the entire code generator."/>
+        <echo message="-----------------------------------------"/>                
+        <echo message="build: compiles all .java files into .class files"/>
+        <echo message="-----------------------------------------"/>
+    </target>    
+    
+    <!-- init: create directory for build files if it doesn't already exist -->
+    <target name="init" description="minor housekeeping">
+        <mkdir dir="build" />
+        <mkdir dir="build/classes" />
+    </target>    
+
+    <!-- build: Compile the java code from ${src} into ${build} -->
+    <target name="build" depends="init" description="compile the source code">
+        <echo message="Compiling .java files into .class files..." />
+        <javac srcdir="${SRC_DIR}" 
+               destdir="${BUILD_DIR}" 
+               classpathref="build.path" 
+               includeantruntime="false" 
+               debug="on"/>
+    </target>
+    
+    <!-- clean: Removes generated files and folders. -->
+    <target name="clean">
+        <echo message="Removing generated files and folders..."/>
+        <delete>
+            <fileset dir="${SRC_DIR}/frontend/generated" 
+                     includes="*.java"
+            />
+        </delete>
+        <delete>
+            <fileset dir="${basedir}" includes="**/*.class"/>
+        </delete>
+        <delete dir="${BUILD_DIR}" />
+    </target>
+    
+       
+<!-- ******************** SCANNER ANT TARGETS **************************** -->
+
+    <!-- generateScanner: Generates JavaCC scanner. -->
+    <target name="generateScanner">
+        <echo message="Generating JavaCC parser .java files..."/>
+        <javacc target="${SRC_DIR}/frontend/RamScanner.jj"
+                outputdirectory="${SRC_DIR}/frontend/generated"
+                javacchome="${LIB_BUILD_DIR}">
+        </javacc>
+    </target>
+    
+    <!-- runScanner: Runs the generated scanner on a test file. -->
+    <target name="runScanner" depends="generateScanner, build">
+        <echo message="Running JavaCC scanner on specified input file..." />
+        <java classname="frontend.generated.RamParser" 
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/lexer/pass/pass3.ram19" /> 
+            <!-- <arg value="${TEST_PROGRAMS_DIR}/lexer/fail/fail1.ram19" /> -->
+        </java> 
+    </target>            
+    
+    <!-- testScanner: Tests our scanner by running it on all tests 
+    under tests/pass directory. -->
+    <target name="testScanner" depends="generateScanner, build">
+        <echo message="Running JavaCC scanner on the test programs..."/>
+        <javac srcdir="${TEST_DIR}"
+               destdir="${BUILD_DIR}"
+               classpathref="build.path" 
+               includeantruntime="false"
+               debug="on">
+            <!-- Uncomment the following to see compiler warnings. -->
+            <!-- <compilerarg value="-Xlint" />                    -->
+        </javac>
+
+        <junit>
+            <sysproperty key="TEST_PROGRAMS_DIR" value="${TEST_PROGRAMS_DIR}/lexer" />
+            <classpath>
+                <pathelement location="${BUILD_DIR}" />
+                <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar" />
+                <pathelement location="${LIB_RUN_DIR}/hamcrest-core-1.3.jar" />
+            </classpath>    
+            <batchtest>
+                <fileset dir="${TEST_DIR}">
+                    <include name="**/*Scanner*Test*" />
+                </fileset>
+            </batchtest>
+            <formatter type="plain" usefile="false"/>
+        </junit>
+        
+    </target>
+
+<!-- ******************** PARSER ANT TARGETS **************************** -->
+
+    <!-- generateScanner: Generates JavaCC scanner and parser. -->
+    <target name="generateParser">
+        <echo message="Generating JavaCC parser .java files..."/>
+        <javacc target="${SRC_DIR}/frontend/RamGrammar.jj"
+                outputdirectory="${SRC_DIR}/frontend/generated"
+                javacchome="${LIB_BUILD_DIR}">
+        </javacc>
+    </target>
+    
+    <!-- runScanner: Runs the generated parser on a test file. -->
+    <target name="runParser" depends="generateParser, build">
+        <echo message="Running JavaCC scanner on specified input file..." />
+        <java classname="frontend.generated.RamParser" 
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/parser/pass/pass1.ram19" />
+            <!-- <arg value="${TEST_PROGRAMS_DIR}/parser/fail/fail1.ram19" /> -->
+        </java> 
+    </target>            
+    
+    <!-- testScanner: Tests our parser by running it on all tests 
+    under tests/pass directory. -->
+    <target name="testParser" depends="generateParser, build">
+        <echo message="Running JavaCC scanner on the test programs..."/>
+        <javac srcdir="${TEST_DIR}"
+               destdir="${BUILD_DIR}"
+               classpathref="build.path" 
+               includeantruntime="false"
+               debug="on">
+            <!-- Uncomment the following to see compiler warnings. -->
+            <!-- <compilerarg value="-Xlint" />                    -->
+        </javac>
+
+        <junit>
+            <sysproperty key="TEST_PROGRAMS_DIR" value="${TEST_PROGRAMS_DIR}/parser" />
+            <classpath>
+                <pathelement location="${BUILD_DIR}" />
+                <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar" />
+                <pathelement location="${LIB_RUN_DIR}/hamcrest-core-1.3.jar" />
+            </classpath>    
+            <batchtest>
+                <fileset dir="${TEST_DIR}">
+                    <include name="**/*Parser*Test*" />
+                </fileset>
+            </batchtest>
+            <formatter type="plain" usefile="false"/>
+        </junit>
+    </target>
+
+ <!-- ******************** PARSER MODULE w/ SEMANTIC ACTIONS - ANT TARGETS **************************** -->
+   
+    <!-- generateSemantic: Generates JavaCC scanner and parser with semantic actions. -->
+    <target name="generateSemantic">
+        <echo message="Generating JavaCC parser .java files..."/>
+        <javacc target="${SRC_DIR}/frontend/RamSemantic.jj"
+                outputdirectory="${SRC_DIR}/frontend/generated"
+                javacchome="${LIB_BUILD_DIR}">
+        </javacc>
+    </target>     
+         
+    <!-- runVisitors: Runs the genereated parser on a test file. -->
+    <target name="runVisitors" depends="generateSemantic, build">
+        <echo message="Running parser on specified input file..." />
+        <java classname="frontend.generated.RamParser" 
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/semantic/pass/Program2.ram19" /> 
+        </java> 
+    </target>   
+    
+<!-- ******************** SEMANTIC ANALYZER TARGETS **************************** -->                     
+
+    <!-- runSA: Runs the semantic analyzer. -->
+    <target name="runSA" depends="generateSemantic, build">
+        <echo message="Running semantic analysis (symbol table, type checking) ..." />        
+        <java classname="driver.ram19Compiler"
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/semantic/pass/Program2.ram19" />
+            <!-- <arg value="${TEST_PROGRAMS_DIR}/semantic/fail/ParsePass2.ram19" /> -->
+        </java> 
+    </target> 
+    
+    <!-- debugSA: Runs the semantic analyzer with debugging enabled. -->
+    <target name="debugSA" depends="generateSemantic, build">
+        <java classname="driver.Ram19Compiler" 
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/semantic/pass/Program2.ram19" />
+            <jvmarg value="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"/>
+        </java>
+    </target>      
+    
+    <!-- testSA: Tests the symbol table and type checker. -->
+    <target name="testSA" depends="clean, generateSemantic, build">
+        <echo message="Type Checking..."/>
+        <javac srcdir="${TEST_DIR}"
+               destdir="${BUILD_DIR}"
+               classpathref="build.path"
+               includeantruntime="false"
+               debug="on">
+            <!-- Uncomment the following to see compiler warnings. -->
+            <!-- <compilerarg value="-Xlint" />                    -->
+        </javac>
+                
+        <junit>
+            <sysproperty key="TEST_PROGRAMS_DIR" value="${TEST_PROGRAMS_DIR}/semantic" />    
+            <classpath>
+                <pathelement location="${BUILD_DIR}" />
+                <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar" />
+                <pathelement location="${LIB_RUN_DIR}/hamcrest-core-1.3.jar" />
+            </classpath>    
+            <batchtest>
+                <fileset dir="${TEST_DIR}">
+                    <include name="**/*Semantic*Test*" />
+                </fileset>
+            </batchtest>
+            <formatter type="plain" usefile="false"/>
+        </junit>                  
+    </target>              
+
+ <!-- ******************** CODE GENERATION ANT TARGETS **************************** -->
+
+    <!-- runCodeGen: Runs the code generator on the given program. -->
+    <target name="runCodeGen" depends="generateSemantic, build">
+        <echo message="Performing Code Generation ..." />        
+        <java classname="driver.ram19Compiler"
+              dir="${BUILD_DIR}" fork="true" failonerror="true" logError="true">
+            <arg value="${TEST_PROGRAMS_DIR}/codegen/1-required/And.ram19" />
+        </java> 
+    </target>
+
+    <!-- testCodeGen: Tests the Code Generator by running it on all .ram19 files 
+    in the directory and comparing against the expected output. -->
+    <target name="testCodeGen" depends="clean,generateSemantic, build">
+        <echo message="Code Generating on the test programs..."/>
+        <javac srcdir="${TEST_DIR}"
+               destdir="${BUILD_DIR}"
+               classpathref="build.path"
+               includeantruntime="false"
+               debug="on">
+            <!-- Uncomment the following to see compiler warnings. -->
+            <!-- <compilerarg value="-Xlint" />                    -->
+            <classpath>
+                <path refid="build.path" />
+                <pathelement location="${BUILD_DIR}" />
+            </classpath>
+        </javac>
+              
+        <junit>
+            <sysproperty key="TEST_PROGRAMS_DIR" value="${TEST_PROGRAMS_DIR}/codegen" />
+            <sysproperty key="MARS_JAR" value="${LIB_RUN_DIR}/Mars4_5.jar" />
+            <classpath>
+                <pathelement location="${BUILD_DIR}" />
+                <pathelement location="${LIB_RUN_DIR}/junit-4.12.jar" />
+                <pathelement location="${LIB_RUN_DIR}/hamcrest-core-1.3.jar" />
+            </classpath>    
+            <batchtest>
+                <fileset dir="${TEST_DIR}">
+                    <include name="**/*Codegen*Test*" />
+                </fileset>
+            </batchtest>
+            <formatter type="plain" usefile="false"/>            
+        </junit>
+    </target> 
+    
+</project>

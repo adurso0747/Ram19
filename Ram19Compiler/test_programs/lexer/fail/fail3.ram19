@@ -1,0 +1,8 @@
+public class CustomFT4
+{
+	public static void main(String a[])
+	{
+		print(1/2);
+		//Fails due to division
+	}
+}

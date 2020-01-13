@@ -1,0 +1,22 @@
+class Test4 {
+    public static void main(String[] a) {
+        integer count = 17;
+        bool flag = false;
+        integer newNum = this.descriptiveMethodName(count, flag);
+    }
+}
+
+/* This method accepts an * integer and a boolean */
+public integer descriptiveMethodName(int number, bool boolean_value)
+{
+    if (boolean_value == true or !(number le 20))
+    {
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
+// A single comment

@@ -1,0 +1,25 @@
+class Test2 {
+    public static void main(String[] a) {
+        Test2Class().method1();
+        Test2Class().method2();
+    }
+}
+
+class Test2Class {
+    public void method1() { 
+        println(5);
+    }
+
+    public void method2(){
+        integer x;
+        integer y;
+        x = 0;
+        y = -1;
+        if (x ge y) {
+            println(6);
+        }
+        else {
+            print(7);
+        }
+    }
+}
